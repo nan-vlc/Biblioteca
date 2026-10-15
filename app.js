@@ -131,19 +131,23 @@ function refreshAllViews() {
   renderStats();
 }
 
-// GENERADOR DE ESTRELLAS VECTORIALES (Dibuja estrellas enteras + media estrella partida por la mitad)
+// GENERADOR DE ESTRELLAS VECTORIALES (Siempre dibuja las 5 estrellas)
 function renderStarsIconsHTML(rating) {
   const num = parseFloat(rating);
   if (!num || num <= 0) return '';
-  const full = Math.floor(num);
-  const hasHalf = num % 1 !== 0;
   let html = '';
 
-  for (let i = 0; i < full; i++) {
-    html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="#FF9F0A" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
-  }
-  if (hasHalf) {
-    html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="url(#ios-half-star)" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+  for (let i = 1; i <= 5; i++) {
+    if (num >= i) {
+      // Estrella entera rellena
+      html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="#FF9F0A" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+    } else if (num >= i - 0.5) {
+      // Media estrella rellena (mitad izquierda)
+      html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="url(#ios-half-star)" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+    } else {
+      // Estrella vacía (hasta completar las 5)
+      html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="none" stroke="#C7C7CC" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+    }
   }
   return html;
 }
