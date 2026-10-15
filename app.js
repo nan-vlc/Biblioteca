@@ -1,4 +1,6 @@
 let books = JSON.parse(localStorage.getItem('ios_books_db')) || [];
+let yearlyGoal = parseInt(localStorage.getItem('ios_yearly_goal')) || 15;
+let currentStatus = 'read';
 let viewMode = 'grid';
 let modalStatus = 'read';
 let currentRating = 0;
@@ -129,23 +131,19 @@ function refreshAllViews() {
   renderStats();
 }
 
-// GENERADOR DE ESTRELLAS VECTORIALES (Siempre dibuja las 5 estrellas)
+// GENERADOR DE ESTRELLAS VECTORIALES (Dibuja estrellas enteras + media estrella partida por la mitad)
 function renderStarsIconsHTML(rating) {
   const num = parseFloat(rating);
   if (!num || num <= 0) return '';
+  const full = Math.floor(num);
+  const hasHalf = num % 1 !== 0;
   let html = '';
 
-  for (let i = 1; i <= 5; i++) {
-    if (num >= i) {
-      // Estrella entera rellena
-      html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="#FF9F0A" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
-    } else if (num >= i - 0.5) {
-      // Media estrella rellena (mitad izquierda)
-      html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="url(#ios-half-star)" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
-    } else {
-      // Estrella vacía (hasta completar las 5)
-      html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="none" stroke="#C7C7CC" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
-    }
+  for (let i = 0; i < full; i++) {
+    html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="#FF9F0A" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+  }
+  if (hasHalf) {
+    html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="url(#ios-half-star)" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
   }
   return html;
 }
@@ -764,6 +762,14 @@ function setupEventListeners() {
     XLSX.writeFile(wb, `Mi_Biblioteca_${new Date().toISOString().slice(0, 10)}.xlsx`);
   });
 
+  document.getElementById('btn-edit-goal').addEventListener('click', () => {
+    const newGoal = prompt('¿Cuántos libros te propones leer este año?', yearlyGoal);
+    if (newGoal && !isNaN(newGoal) && parseInt(newGoal) > 0) {
+      yearlyGoal = parseInt(newGoal);
+      localStorage.setItem('ios_yearly_goal', yearlyGoal);
+      renderStats();
+    }
+  });
 }
 
 async function handleExcelImport(event) {
@@ -867,6 +873,10 @@ function renderStats() {
   document.getElementById('stat-total-pages').textContent = totalPages.toLocaleString('es-ES');
   document.getElementById('stat-avg-rating').textContent = avgRating;
   document.getElementById('stat-dnf-rate').textContent = `${dnfRate}%`;
+
+  const pct = Math.min(100, Math.round((totalRead / yearlyGoal) * 100));
+  document.getElementById('goal-subtitle').textContent = `${totalRead} de ${yearlyGoal} libros completados (${pct}%)`;
+  document.getElementById('goal-progress-fill').style.width = `${pct}%`;
 
   const authorCounts = {};
   readBooks.forEach(b => {
