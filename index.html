@@ -115,19 +115,49 @@
     .segment { flex: 1; border: none; background: transparent; padding: 7px 0; font-size: 13px; font-weight: 600; color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1); }
     .segment.active { background: var(--bg-card); color: var(--text-primary); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0.5px 1px rgba(0, 0, 0, 0.06); }
     .search-sort-bar { display: flex; gap: 8px; align-items: center; }
-    .ios-search { flex: 1; display: flex; align-items: center; gap: 8px; background: var(--fill-control); height: 38px; padding: 0 12px; border-radius: 10px; color: var(--text-secondary); }
-    .ios-search svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* BUSCADOR CON BOTÓN X PARA BORRAR DE GOLPE */
+    .ios-search {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--fill-control);
+      height: 38px;
+      padding: 0 10px 0 12px;
+      border-radius: 10px;
+      color: var(--text-secondary);
+    }
+    .ios-search svg.search-lens { width: 16px; height: 16px; flex-shrink: 0; }
     .ios-search input { border: none; background: transparent; width: 100%; font-size: 14px; color: var(--text-primary); outline: none; }
     .ios-search input::placeholder { color: var(--text-secondary); }
+
+    .search-clear-btn {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: none;
+      background: var(--text-tertiary);
+      color: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 0;
+    }
+    .search-clear-btn:active { opacity: 0.7; transform: scale(0.9); }
+
     .ios-select { appearance: none; -webkit-appearance: none; background: var(--fill-control); border: none; border-radius: 10px; height: 38px; padding: 0 12px; font-size: 13px; font-weight: 600; color: var(--text-primary); cursor: pointer; outline: none; }
     .ios-main { padding: 18px 20px; flex: 1; }
     .tab-view { display: none; animation: fadeIn 0.22s ease; }
     .tab-view.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* CUADRÍCULA PERFECTAMENTE PROPORCIONADA */
     .books-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 12px; width: 100%; }
-    
     .book-card-grid { display: flex; flex-direction: column; min-width: 0; cursor: pointer; transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1); }
     .book-card-grid:active { transform: scale(0.95); }
     .cover-wrapper { position: relative; width: 100%; aspect-ratio: 1 / 1.52; border-radius: 4px 8px 8px 4px; overflow: hidden; background: linear-gradient(145deg, #E5E5EA, #D1D1D6); box-shadow: var(--shadow-cover); margin-bottom: 8px; }
@@ -136,11 +166,13 @@
     .cover-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 10px 8px 10px 12px; background: linear-gradient(160deg, #2C2C2E 0%, #1C1C1E 100%); color: #FFFFFF; }
     .cover-placeholder-title { font-size: 11px; font-weight: 700; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
     .cover-placeholder-author { font-size: 9px; color: rgba(255, 255, 255, 0.65); text-transform: uppercase; letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .badge-top { position: absolute; top: 6px; right: 6px; z-index: 2; background: rgba(28, 28, 30, 0.78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: #fff; font-size: 9px; font-weight: 700; padding: 3px 6px; border-radius: 6px; max-width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .book-title-grid { font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .book-author-grid { font-size: 11.5px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-    .book-rating-grid { font-size: 11px; color: var(--star-gold); font-weight: 600; margin-top: 3px; letter-spacing: 0.5px; }
-    .book-date-grid { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; font-weight: 500; }
+    
+    /* ESTRELLAS GRÁFICAS (CON MEDIA ESTRELLA PARTIDA POR LA MITAD) */
+    .book-rating-grid { display: flex; align-items: center; gap: 2px; margin-top: 4px; }
+    .mini-star-svg { width: 13px; height: 13px; flex-shrink: 0; display: block; }
+    .book-date-grid { font-size: 10px; color: var(--text-tertiary); margin-top: 3px; font-weight: 500; }
     
     .books-list { background: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow-card); border: 0.5px solid var(--border-hairline); overflow: hidden; }
     .book-row-list { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 0.5px solid var(--border-hairline); cursor: pointer; transition: background 0.15s ease; }
@@ -150,7 +182,7 @@
     .list-info { flex: 1; min-width: 0; }
     .list-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .list-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .list-meta { text-align: right; font-size: 13px; font-weight: 600; color: var(--star-gold); flex-shrink: 0; }
+    .list-meta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
     
     .ios-card { background: var(--bg-card); border-radius: 18px; padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow-card); border: 0.5px solid var(--border-hairline); }
     .card-title { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; }
@@ -198,7 +230,6 @@
     .form-group { margin-bottom: 14px; min-width: 0; }
     .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
 
-    /* TODAS LAS CASILLAS CON ALTURA Y PROPORCIÓN IDÉNTICA (44px) */
     .ios-input {
       width: 100%;
       height: 44px;
@@ -220,10 +251,9 @@
     .change-cover-btn { font-size: 11px; font-weight: 600; color: var(--accent); background: none; border: none; cursor: pointer; }
     .preview-fields { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     .form-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .form-grid-saga { display: grid; grid-template-columns: 3fr 1fr; gap: 10px; }
     
     .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    .rating-badge { font-size: 13px; font-weight: 700; color: var(--star-gold); }
+    .rating-badge { display: flex; align-items: center; gap: 2px; }
     .interactive-stars-box { background: var(--fill-control); border-radius: 11px; height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; }
     .star-touch-area { display: flex; gap: 8px; cursor: pointer; user-select: none; }
     .star-svg { width: 26px; height: 26px; transition: transform 0.12s ease; }
@@ -235,7 +265,6 @@
     .api-item:active, .api-item:hover { background: var(--fill-control); }
     .api-item img { width: 34px; height: 52px; border-radius: 3px; object-fit: cover; flex-shrink: 0; }
     
-    /* SELECTOR DE PORTADAS ALTERNATIVAS */
     .cover-picker-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px; background: var(--fill-control); border-radius: 12px; margin-bottom: 14px; }
     .cover-picker-item { width: 100%; aspect-ratio: 1 / 1.5; object-fit: cover; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: transform 0.15s ease; }
     .cover-picker-item:active { transform: scale(0.92); }
@@ -246,6 +275,16 @@
   </style>
 </head>
 <body>
+  <!-- Definición SVG global para dibujar la media estrella partida por la mitad -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="ios-half-star" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="50%" stop-color="#FF9F0A" />
+        <stop offset="50%" stop-color="transparent" />
+      </linearGradient>
+    </defs>
+  </svg>
+
   <div class="app-shell">
     <header class="ios-header">
       <div class="header-top">
@@ -285,10 +324,11 @@
 
         <div class="search-sort-bar">
           <div class="ios-search">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="search-lens" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" id="local-search" placeholder="Título, autor o saga..." />
+            <input type="text" id="local-search" placeholder="Buscar título o autor..." autocomplete="off" />
+            <button type="button" id="btn-clear-local-search" class="search-clear-btn hidden" title="Borrar texto">✕</button>
           </div>
           <select id="sort-select" class="ios-select"></select>
         </div>
@@ -304,7 +344,7 @@
       <section id="tab-decide" class="tab-view">
         <div class="ios-card">
           <h2 class="card-title">Explorar pendientes</h2>
-          <p class="card-subtitle">Selecciona una o varias extensiones y el género para filtrar tu lista de "Por leer".</p>
+          <p class="card-subtitle">Selecciona una o varias extensiones y la categoría para filtrar tu lista de "Por leer".</p>
           <div class="filter-group">
             <label>Extensión</label>
             <div class="pill-group-3" id="decide-length">
@@ -314,8 +354,8 @@
             </div>
           </div>
           <div class="filter-group">
-            <label>Género</label>
-            <select id="decide-genre" class="ios-input"><option value="all">Todos los géneros</option></select>
+            <label>Categoría</label>
+            <select id="decide-genre" class="ios-input"><option value="all">Todas las categorías</option></select>
           </div>
         </div>
         <div class="discover-header">
@@ -343,7 +383,7 @@
           <div class="progress-bar-bg"><div id="goal-progress-fill" class="progress-bar-fill"></div></div>
         </div>
         <div class="ios-card"><h2 class="card-title">Autores más leídos</h2><div id="top-authors-list" class="ranking-list"></div></div>
-        <div class="ios-card"><h2 class="card-title">Géneros principales</h2><div id="top-genres-list" class="ranking-list"></div></div>
+        <div class="ios-card"><h2 class="card-title">Categorías principales</h2><div id="top-genres-list" class="ranking-list"></div></div>
       </section>
     </main>
 
@@ -374,11 +414,12 @@
       </div>
 
       <div class="sheet-body">
-        <!-- Buscador conectado a Apple Books ES + Google Books ES -->
+        <!-- Buscador online con botón X para limpiar -->
         <div class="form-group">
           <div class="ios-search">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <svg class="search-lens" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input type="text" id="api-search-input" placeholder="Buscar título o autor..." autocomplete="off" />
+            <button type="button" id="btn-clear-api-search" class="search-clear-btn hidden" title="Borrar búsqueda">✕</button>
           </div>
           <div id="api-results" class="api-results hidden"></div>
         </div>
@@ -395,7 +436,7 @@
         <div class="form-group" id="rating-group">
           <div class="label-row">
             <label style="margin:0">Valoración</label>
-            <span id="rating-display" class="rating-badge">Sin nota</span>
+            <div id="rating-display" class="rating-badge"></div>
           </div>
           <div class="interactive-stars-box">
             <div id="star-touch-container" class="star-touch-area"></div>
@@ -404,7 +445,6 @@
           <input type="hidden" id="rating-Input" value="0" />
         </div>
 
-        <!-- MES Y AÑO CON EL MISMO TAMAÑO EXACTO QUE EL RESTO DE CASILLAS -->
         <div class="form-grid-2" id="read-date-group">
           <div class="form-group">
             <label>Mes de lectura</label>
@@ -440,22 +480,26 @@
           </div>
         </div>
 
-        <!-- Galería desplegable para cambiar de portada con un toque -->
         <div id="cover-picker-box" class="cover-picker-grid hidden"></div>
 
+        <!-- PÁGINAS Y CATEGORÍA UNIFICADA -->
         <div class="form-grid-2">
-          <div class="form-group"><label>Páginas totales</label><input type="number" id="book-pages" class="ios-input" placeholder="Automático" /></div>
-          <div class="form-group"><label>Género</label><input type="text" id="book-genre" class="ios-input" placeholder="Ej. Novela Negra" /></div>
-        </div>
-
-        <div class="form-grid-saga">
-          <div class="form-group"><label>Saga / Colección</label><input type="text" id="book-saga" class="ios-input" placeholder="Opcional" /></div>
-          <div class="form-group"><label>Vol.</label><input type="number" step="1" id="book-saga-num" class="ios-input" placeholder="1" /></div>
-        </div>
-
-        <div id="wishlist-extras" class="form-group hidden">
-          <label>Recomendado por</label>
-          <input type="text" id="book-recommended" class="ios-input" placeholder="Opcional" />
+          <div class="form-group">
+            <label>Páginas totales</label>
+            <input type="number" id="book-pages" class="ios-input" placeholder="Automático" />
+          </div>
+          <div class="form-group">
+            <label>Categoría</label>
+            <select id="book-genre" class="ios-input">
+              <option value="Ciencia Ficción">Ciencia Ficción</option>
+              <option value="Misterio y Suspense">Misterio y Suspense</option>
+              <option value="Clásicos">Clásicos</option>
+              <option value="Fantasía">Fantasía</option>
+              <option value="Ficción y Narrativa">Ficción y Narrativa</option>
+              <option value="Historia y Biografía">Historia y Biografía</option>
+              <option value="Ensayo y No Ficción">Ensayo y No Ficción</option>
+            </select>
+          </div>
         </div>
 
         <input type="hidden" id="book-cover-url" />
