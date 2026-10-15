@@ -1,6 +1,4 @@
 let books = JSON.parse(localStorage.getItem('ios_books_db')) || [];
-let yearlyGoal = parseInt(localStorage.getItem('ios_yearly_goal')) || 15;
-let currentStatus = 'read';
 let viewMode = 'grid';
 let modalStatus = 'read';
 let currentRating = 0;
@@ -766,14 +764,6 @@ function setupEventListeners() {
     XLSX.writeFile(wb, `Mi_Biblioteca_${new Date().toISOString().slice(0, 10)}.xlsx`);
   });
 
-  document.getElementById('btn-edit-goal').addEventListener('click', () => {
-    const newGoal = prompt('¿Cuántos libros te propones leer este año?', yearlyGoal);
-    if (newGoal && !isNaN(newGoal) && parseInt(newGoal) > 0) {
-      yearlyGoal = parseInt(newGoal);
-      localStorage.setItem('ios_yearly_goal', yearlyGoal);
-      renderStats();
-    }
-  });
 }
 
 async function handleExcelImport(event) {
@@ -877,10 +867,6 @@ function renderStats() {
   document.getElementById('stat-total-pages').textContent = totalPages.toLocaleString('es-ES');
   document.getElementById('stat-avg-rating').textContent = avgRating;
   document.getElementById('stat-dnf-rate').textContent = `${dnfRate}%`;
-
-  const pct = Math.min(100, Math.round((totalRead / yearlyGoal) * 100));
-  document.getElementById('goal-subtitle').textContent = `${totalRead} de ${yearlyGoal} libros completados (${pct}%)`;
-  document.getElementById('goal-progress-fill').style.width = `${pct}%`;
 
   const authorCounts = {};
   readBooks.forEach(b => {
