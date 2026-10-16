@@ -1,11 +1,11 @@
 let books = JSON.parse(localStorage.getItem('ios_books_db')) || [];
-let yearlyGoal = parseInt(localStorage.getItem('ios_yearly_goal')) || 15;
 let currentStatus = 'read';
 let viewMode = 'grid';
 let modalStatus = 'read';
 let currentRating = 0;
 let searchTimeout = null;
 let lastSearchResults = [];
+let currentBreakdownType = 'genre';
 
 const booksContainer = document.getElementById('books-container');
 const discoverResultsContainer = document.getElementById('discover-results-container');
@@ -16,6 +16,7 @@ const btnClearApiSearch = document.getElementById('btn-clear-api-search');
 const apiResultsBox = document.getElementById('api-results');
 const sortSelect = document.getElementById('sort-select');
 const bookModal = document.getElementById('book-modal');
+const breakdownModal = document.getElementById('breakdown-modal');
 const ratingInput = document.getElementById('rating-Input');
 const ratingDisplay = document.getElementById('rating-display');
 const readMonthSelect = document.getElementById('book-read-month');
@@ -25,14 +26,12 @@ const STAR_PATH = 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25
 
 document.addEventListener('DOMContentLoaded', () => {
   const currentYear = new Date().getFullYear();
-  document.getElementById('current-year-label').textContent = currentYear;
   initYearSelector(currentYear);
   initInteractiveStars();
   migrateAndUnifySavedGenres();
   setupEventListeners();
   updateSortOptions();
   refreshAllViews();
-  repairMissingCoversAndPages();
 });
 
 function initYearSelector(currentYear) {
@@ -43,7 +42,11 @@ function initYearSelector(currentYear) {
   readYearSelect.innerHTML = html;
 }
 
-// CLASIFICADOR INTELIGENTE QUE UNIFICA SUBGÉNEROS EN GRANDES GRUPOS
+function getTodayYearMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
 function unifyGenre(rawGenre, title = '', author = '') {
   const text = `${rawGenre || ''} ${title || ''} ${author || ''}`.toLowerCase();
   const g = (rawGenre || '').toLowerCase().trim();
@@ -56,7 +59,6 @@ function unifyGenre(rawGenre, title = '', author = '') {
   ) {
     return 'Ciencia Ficción';
   }
-
   if (
     g.includes('misterio') || g.includes('mystery') ||
     g.includes('suspense') || g.includes('thriller') ||
@@ -66,7 +68,6 @@ function unifyGenre(rawGenre, title = '', author = '') {
   ) {
     return 'Misterio y Suspense';
   }
-
   if (
     g.includes('clásico') || g.includes('clasico') ||
     g.includes('classic') ||
@@ -74,14 +75,12 @@ function unifyGenre(rawGenre, title = '', author = '') {
   ) {
     return 'Clásicos';
   }
-
   if (
     g.includes('fantasía') || g.includes('fantasia') ||
     g.includes('fantasy') || g.includes('magia') || g.includes('épica')
   ) {
     return 'Fantasía';
   }
-
   if (
     g.includes('historia') || g.includes('history') ||
     g.includes('biograf') || g.includes('memorias') ||
@@ -89,7 +88,6 @@ function unifyGenre(rawGenre, title = '', author = '') {
   ) {
     return 'Historia y Biografía';
   }
-
   if (
     g.includes('ensayo') || g.includes('filosof') || g.includes('philosophy') ||
     g.includes('psicolog') || g.includes('psychology') ||
@@ -100,11 +98,9 @@ function unifyGenre(rawGenre, title = '', author = '') {
   ) {
     return 'Ensayo y No Ficción';
   }
-
   return 'Ficción y Narrativa';
 }
 
-// Migrar libros ya guardados para que sus categorías queden unificadas
 function migrateAndUnifySavedGenres() {
   let changed = false;
   books.forEach(b => {
@@ -131,19 +127,20 @@ function refreshAllViews() {
   renderStats();
 }
 
-// GENERADOR DE ESTRELLAS VECTORIALES (Dibuja estrellas enteras + media estrella partida por la mitad)
+// 5 ESTRELLAS SIEMPRE CON BORDE DORADO (#FF9F0A)
 function renderStarsIconsHTML(rating) {
   const num = parseFloat(rating);
   if (!num || num <= 0) return '';
-  const full = Math.floor(num);
-  const hasHalf = num % 1 !== 0;
   let html = '';
 
-  for (let i = 0; i < full; i++) {
-    html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="#FF9F0A" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
-  }
-  if (hasHalf) {
-    html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="url(#ios-half-star)" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+  for (let i = 1; i <= 5; i++) {
+    if (num >= i) {
+      html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="#FF9F0A" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+    } else if (num >= i - 0.5) {
+      html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="url(#ios-half-star)" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+    } else {
+      html += `<svg class="mini-star-svg" viewBox="0 0 24 24"><path d="${STAR_PATH}" fill="none" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+    }
   }
   return html;
 }
@@ -176,10 +173,28 @@ function updateSortOptions() {
   sortSelect.value = Array.from(sortSelect.options).some(o => o.value === val) ? val : 'recent';
 }
 
+// PASAR UN LIBRO DE "POR LEER" DIRECTAMENTE A "LEÍDOS"
+window.markAsReadDirectly = function(event, bookId) {
+  if (event) event.stopPropagation();
+  const b = books.find(item => item.id === bookId);
+  if (!b) return;
+
+  b.status = 'read';
+  if (!b.readDate) {
+    b.readDate = getTodayYearMonth();
+  }
+  b.createdAt = Date.now();
+  saveToStorage();
+};
+
 function createBookCardGridHTML(b) {
   const coverHtml = b.cover
     ? `<img src="${b.cover}" alt="${b.title}" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display='none'" />`
     : `<div class="cover-placeholder"><div class="cover-placeholder-title">${b.title}</div><div class="cover-placeholder-author">${b.author}</div></div>`;
+
+  const quickReadBtn = b.status === 'wishlist'
+    ? `<button type="button" class="quick-read-btn" onclick="markAsReadDirectly(event, '${b.id}')" title="Pasar a Leídos">✓</button>`
+    : '';
 
   const metaLine = b.status === 'wishlist'
     ? (b.pages ? `<div class="book-author-grid">${b.pages} págs.</div>` : '')
@@ -190,7 +205,7 @@ function createBookCardGridHTML(b) {
 
   return `
     <div class="book-card-grid" onclick="openEditModal('${b.id}')">
-      <div class="cover-wrapper">${coverHtml}</div>
+      <div class="cover-wrapper">${coverHtml}${quickReadBtn}</div>
       <div class="book-title-grid">${b.title}</div>
       <div class="book-author-grid">${b.author}</div>
       ${metaLine}
@@ -212,12 +227,20 @@ function renderLibrary() {
     );
   }
 
+  // ORDENAR POR RECIENTES SEGÚN LA FECHA DE LECTURA PUESTA POR EL USUARIO (YYYY-MM)
   filtered.sort((a, b) => {
     if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
     if (sortBy === 'title') return a.title.localeCompare(b.title);
     if (sortBy === 'author') return a.author.localeCompare(b.author);
     if (sortBy === 'pages') return (b.pages || 0) - (a.pages || 0);
-    return b.createdAt - a.createdAt;
+
+    // Recientes: comparar primero readDate ("YYYY-MM") y luego createdAt
+    const dateA = a.readDate || '';
+    const dateB = b.readDate || '';
+    if (dateA !== dateB) {
+      return dateB.localeCompare(dateA);
+    }
+    return (b.createdAt || 0) - (a.createdAt || 0);
   });
 
   booksContainer.className = viewMode === 'grid' ? 'books-grid' : 'books-list';
@@ -238,7 +261,8 @@ function renderLibrary() {
     booksContainer.innerHTML = filtered.map(b => {
       let rightInfo = '';
       if (b.status === 'wishlist') {
-        rightInfo = b.pages ? `<span style="font-size:13px;font-weight:600;color:var(--text-secondary)">${b.pages} p.</span>` : '';
+        const pagesSpan = b.pages ? `<span style="font-size:12px;color:var(--text-secondary)">${b.pages} p.</span>` : '';
+        rightInfo = `${pagesSpan}<button type="button" class="quick-read-list-btn" onclick="markAsReadDirectly(event, '${b.id}')">✓ Leído</button>`;
       } else {
         const starsHtml = b.rating > 0 ? `<div class="book-rating-grid">${renderStarsIconsHTML(b.rating)}</div>` : '';
         const dateStr = (b.status === 'read' && b.readDate) ? `<div style="font-size:11px;color:var(--text-tertiary);margin-top:3px">${formatYearMonth(b.readDate)}</div>` : '';
@@ -287,7 +311,6 @@ function renderDiscoverResults() {
   discoverResultsContainer.innerHTML = pool.map(b => createBookCardGridHTML(b)).join('');
 }
 
-// REINICIO TOTAL DE BUSCADORES
 function resetApiSearch() {
   clearTimeout(searchTimeout);
   apiSearchInput.value = '';
@@ -302,7 +325,6 @@ function resetLocalSearch() {
   btnClearLocalSearch.classList.add('hidden');
 }
 
-// MOTOR DE BÚSQUEDA HÍBRIDO EN ESPAÑOL
 async function fetchSpanishBookCandidates(query) {
   const results = [];
 
@@ -383,7 +405,6 @@ async function searchBooksOnline(query) {
 
   try {
     lastSearchResults = await fetchSpanishBookCandidates(query);
-    // Si el usuario ya borró el input mientras cargaba, no mostrar resultados
     if (apiSearchInput.value.trim().length < 2 || lastSearchResults.length === 0) {
       apiResultsBox.classList.add('hidden');
       return;
@@ -423,25 +444,8 @@ window.selectSearchResult = async function(idx) {
     previewImg.classList.add('hidden');
   }
 
-  // Dejar el texto en el buscador con el botón X visible por si quiere borrarlo de golpe, pero cerrar el desplegable
   apiResultsBox.classList.add('hidden');
-
-  if (!data.pages) {
-    const pages = await fetchPageCountFallback(data.title, data.author);
-    if (pages) document.getElementById('book-pages').value = pages;
-  }
 };
-
-async function fetchPageCountFallback(title, author) {
-  try {
-    const q = `${title} ${author || ''}`.trim();
-    const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=number_of_pages_median&limit=3`);
-    const data = await res.json();
-    const docWithPages = (data.docs || []).find(d => d.number_of_pages_median > 0);
-    if (docWithPages) return docWithPages.number_of_pages_median;
-  } catch (e) {}
-  return null;
-}
 
 async function openCoverPicker() {
   const title = document.getElementById('book-title').value.trim();
@@ -457,7 +461,7 @@ async function openCoverPicker() {
   const covers = candidates.map(c => c.cover).filter(Boolean);
 
   if (covers.length === 0) {
-    pickerBox.innerHTML = `<span style="grid-column:1/-1;font-size:12px;color:var(--text-secondary);text-align:center">No se encontraron más portadas.</span>`;
+    pickerBox.innerHTML = `<span style="grid-column:1/-1;font-size:12px;color:var(--text-secondary);text-align:center">No se encontraron portadas.</span>`;
     return;
   }
 
@@ -512,7 +516,7 @@ function setRatingValue(val) {
     } else if (fillType === 'half') {
       svg.innerHTML = `<path d="${STAR_PATH}" fill="url(#ios-half-star)" stroke="#FF9F0A" stroke-width="1.5" stroke-linejoin="round"/>`;
     } else {
-      svg.innerHTML = `<path d="${STAR_PATH}" fill="none" stroke="#AEAEB2" stroke-width="1.5" stroke-linejoin="round"/>`;
+      svg.innerHTML = `<path d="${STAR_PATH}" fill="none" stroke="#FF9F0A" stroke-width="1.5" stroke-linejoin="round"/>`;
     }
   });
 }
@@ -524,9 +528,11 @@ function setModalStatus(status) {
   });
   const isRead = status === 'read';
   const isWishlist = status === 'wishlist';
+  const isEditing = Boolean(document.getElementById('editing-book-id').value);
 
   document.getElementById('rating-group').classList.toggle('hidden', isWishlist);
   document.getElementById('read-date-group').classList.toggle('hidden', !isRead);
+  document.getElementById('btn-modal-mark-read').classList.toggle('hidden', !(isEditing && isWishlist));
 }
 
 function setCurrentMonthYearDefault() {
@@ -564,6 +570,7 @@ window.openEditModal = function(id) {
   const b = books.find(item => item.id === id);
   if (!b) return;
 
+  breakdownModal.classList.add('hidden');
   resetApiSearch();
   document.getElementById('editing-book-id').value = b.id;
   document.getElementById('modal-title').textContent = 'Editar libro';
@@ -597,7 +604,6 @@ window.openEditModal = function(id) {
 };
 
 function setupEventListeners() {
-  // Cambiar entre Leídos, Por leer y DNF reiniciando el buscador local
   document.querySelectorAll('#library-controls .segment').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#library-controls .segment').forEach(b => b.classList.remove('active'));
@@ -614,7 +620,6 @@ function setupEventListeners() {
     renderLibrary();
   });
 
-  // Buscador de la biblioteca con botón X
   localSearchInput.addEventListener('input', () => {
     btnClearLocalSearch.classList.toggle('hidden', localSearchInput.value.length === 0);
     renderLibrary();
@@ -628,7 +633,6 @@ function setupEventListeners() {
 
   sortSelect.addEventListener('change', renderLibrary);
 
-  // Cambio de pestañas inferiores
   document.querySelectorAll('.ios-tabbar .tab-item').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.ios-tabbar .tab-item').forEach(t => t.classList.remove('active'));
@@ -655,11 +659,18 @@ function setupEventListeners() {
 
   document.getElementById('decide-genre').addEventListener('change', renderDiscoverResults);
 
-  // Abrir y cerrar modal (Cancelar o tocar fondo reinicia siempre el buscador)
   document.getElementById('btn-add-book').addEventListener('click', openNewBookModal);
   document.getElementById('btn-close-modal').addEventListener('click', closeBookModal);
   bookModal.addEventListener('click', (e) => {
     if (e.target === bookModal) closeBookModal();
+  });
+
+  document.getElementById('btn-close-breakdown').addEventListener('click', () => breakdownModal.classList.add('hidden'));
+  breakdownModal.addEventListener('click', (e) => {
+    if (e.target === breakdownModal) breakdownModal.classList.add('hidden');
+  });
+  document.getElementById('btn-show-all-groups').addEventListener('click', () => {
+    openStatsBreakdown(currentBreakdownType, null);
   });
 
   document.getElementById('btn-change-cover').addEventListener('click', openCoverPicker);
@@ -668,7 +679,6 @@ function setupEventListeners() {
     btn.addEventListener('click', () => setModalStatus(btn.dataset.status));
   });
 
-  // Buscador online del modal con botón X
   apiSearchInput.addEventListener('input', (e) => {
     const val = e.target.value;
     btnClearApiSearch.classList.toggle('hidden', val.length === 0);
@@ -685,25 +695,24 @@ function setupEventListeners() {
     apiSearchInput.focus();
   });
 
-  // Guardar libro
-  document.getElementById('btn-save-book').addEventListener('click', async () => {
+  // Botón dentro del modal para pasar un libro de "Por leer" directamente a "Leídos"
+  document.getElementById('btn-modal-mark-read').addEventListener('click', () => {
+    const editId = document.getElementById('editing-book-id').value;
+    if (!editId) return;
+    markAsReadDirectly(null, editId);
+    closeBookModal();
+  });
+
+  // GUARDAR INSTANTÁNEO (No vuelve a buscar si el usuario lo rellena o deja a mano)
+  document.getElementById('btn-save-book').addEventListener('click', () => {
     const title = document.getElementById('book-title').value.trim();
     const author = document.getElementById('book-author').value.trim();
     if (!title || !author) return alert('Introduce al menos el título y el autor.');
 
     const editId = document.getElementById('editing-book-id').value;
-    let pagesVal = parseInt(document.getElementById('book-pages').value) || null;
-    let coverVal = document.getElementById('book-cover-url').value;
-    let genreVal = document.getElementById('book-genre').value;
-
-    if (!coverVal || !pagesVal) {
-      const candidates = await fetchSpanishBookCandidates(`${title} ${author}`);
-      if (candidates[0]) {
-        if (!coverVal && candidates[0].cover) coverVal = candidates[0].cover;
-        if (!pagesVal && candidates[0].pages) pagesVal = parseInt(candidates[0].pages) || null;
-      }
-    }
-
+    const pagesVal = parseInt(document.getElementById('book-pages').value) || null;
+    const coverVal = document.getElementById('book-cover-url').value;
+    const genreVal = document.getElementById('book-genre').value;
     const readDate = modalStatus === 'read' ? `${readYearSelect.value}-${readMonthSelect.value}` : '';
 
     const bookData = {
@@ -729,7 +738,6 @@ function setupEventListeners() {
     closeBookModal();
   });
 
-  // Eliminar libro
   document.getElementById('btn-delete-book').addEventListener('click', () => {
     const editId = document.getElementById('editing-book-id').value;
     if (editId && confirm('¿Eliminar este libro de tu biblioteca?')) {
@@ -761,15 +769,6 @@ function setupEventListeners() {
     XLSX.utils.book_append_sheet(wb, ws, 'Biblioteca');
     XLSX.writeFile(wb, `Mi_Biblioteca_${new Date().toISOString().slice(0, 10)}.xlsx`);
   });
-
-  document.getElementById('btn-edit-goal').addEventListener('click', () => {
-    const newGoal = prompt('¿Cuántos libros te propones leer este año?', yearlyGoal);
-    if (newGoal && !isNaN(newGoal) && parseInt(newGoal) > 0) {
-      yearlyGoal = parseInt(newGoal);
-      localStorage.setItem('ios_yearly_goal', yearlyGoal);
-      renderStats();
-    }
-  });
 }
 
 async function handleExcelImport(event) {
@@ -797,7 +796,7 @@ async function handleExcelImport(event) {
     if (rawState.includes('por leer') || rawState.includes('pendiente') || rawState === 'no') status = 'wishlist';
     if (rawState.includes('dnf') || rawState.includes('abandonado')) status = 'dnf';
 
-    const rawGenre = row['Categoría'] || row['Género'] || row['Genero'] || '';
+    const rawGenre = row['Categoría'] || row['Categoría'] || row['Género'] || row['Genero'] || '';
 
     const newBook = {
       id: crypto.randomUUID(),
@@ -821,13 +820,7 @@ async function handleExcelImport(event) {
   enrichImportedBooks(addedBooks);
 }
 
-async function repairMissingCoversAndPages() {
-  const missing = books.filter(b => !b.cover || !b.pages);
-  if (missing.length > 0) {
-    enrichImportedBooks(missing);
-  }
-}
-
+// Solo se ejecuta una única vez al subir un archivo Excel nuevo
 async function enrichImportedBooks(bookList) {
   const banner = document.getElementById('sync-banner');
   const syncText = document.getElementById('sync-text');
@@ -845,9 +838,9 @@ async function enrichImportedBooks(bookList) {
         if (candidates[0].genre) b.genre = unifyGenre(candidates[0].genre, b.title, b.author);
       }
       saveToStorage();
-      await new Promise(r => setTimeout(r, 380));
+      await new Promise(r => setTimeout(r, 350));
     } catch (e) {
-      console.warn('Error completando:', b.title);
+      console.warn('No se encontró información para:', b.title);
     }
   }
 
@@ -874,38 +867,101 @@ function renderStats() {
   document.getElementById('stat-avg-rating').textContent = avgRating;
   document.getElementById('stat-dnf-rate').textContent = `${dnfRate}%`;
 
-  const pct = Math.min(100, Math.round((totalRead / yearlyGoal) * 100));
-  document.getElementById('goal-subtitle').textContent = `${totalRead} de ${yearlyGoal} libros completados (${pct}%)`;
-  document.getElementById('goal-progress-fill').style.width = `${pct}%`;
-
   const authorCounts = {};
   readBooks.forEach(b => {
     authorCounts[b.author] = (authorCounts[b.author] || 0) + 1;
   });
-  renderRanking('top-authors-list', authorCounts, 'libros');
+  renderRanking('top-authors-list', authorCounts, 'author');
 
   const genreCounts = {};
   readBooks.forEach(b => {
     const unified = unifyGenre(b.genre, b.title, b.author);
     genreCounts[unified] = (genreCounts[unified] || 0) + 1;
   });
-  renderRanking('top-genres-list', genreCounts, 'libros');
+  renderRanking('top-genres-list', genreCounts, 'genre');
 }
 
-function renderRanking(containerId, countObj, unit) {
-  const entries = Object.entries(countObj).sort((a, b) => b[1] - a[1]).slice(0, 5);
+function renderRanking(containerId, countObj, type) {
+  const entries = Object.entries(countObj).sort((a, b) => b[1] - a[1]);
   const el = document.getElementById(containerId);
   if (entries.length === 0) {
-    el.innerHTML = `<span style="font-size:13px;color:var(--text-secondary)">Sin datos suficientes.</span>`;
+    el.innerHTML = `<span style="font-size:13px;color:var(--text-secondary);padding:6px 0">Sin datos suficientes.</span>`;
     return;
   }
-  el.innerHTML = entries.map(([name, count]) => `
-    <div class="ranking-item">
-      <span style="font-weight:500">${name}</span>
-      <span style="font-weight:600;color:var(--text-secondary)">${count} ${unit}</span>
-    </div>
-  `).join('');
+  el.innerHTML = entries.map(([name, count]) => {
+    const safeName = name.replace(/'/g, "\\'");
+    return `
+      <div class="ranking-item" onclick="openStatsBreakdown('${type}', '${safeName}')">
+        <span style="font-weight:500">${name}</span>
+        <span style="font-weight:600;color:var(--text-secondary)">${count} ${count === 1 ? 'libro' : 'libros'} ›</span>
+      </div>
+    `;
+  }).join('');
 }
+
+// DESGLOSE INTERACTIVO DE LIBROS POR CATEGORÍA O AUTOR
+window.openStatsBreakdown = function(type, filterValue = null) {
+  currentBreakdownType = type;
+  const readBooks = books.filter(b => b.status === 'read');
+  const titleEl = document.getElementById('breakdown-modal-title');
+  const bodyEl = document.getElementById('breakdown-modal-body');
+  const showAllBtn = document.getElementById('btn-show-all-groups');
+
+  showAllBtn.classList.toggle('hidden', !filterValue);
+
+  if (filterValue) {
+    titleEl.textContent = filterValue;
+  } else {
+    titleEl.textContent = type === 'genre' ? 'Libros por categoría' : 'Libros por autor';
+  }
+
+  // Agrupar libros leídos
+  const groups = {};
+  readBooks.forEach(b => {
+    const key = type === 'genre' ? unifyGenre(b.genre, b.title, b.author) : b.author;
+    if (filterValue && key !== filterValue) return;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(b);
+  });
+
+  const sortedGroupKeys = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+
+  if (sortedGroupKeys.length === 0) {
+    bodyEl.innerHTML = `<p style="text-align:center;color:var(--text-secondary);padding:24px 0">No hay libros registrados en esta sección.</p>`;
+    breakdownModal.classList.remove('hidden');
+    return;
+  }
+
+  bodyEl.innerHTML = sortedGroupKeys.map(groupName => {
+    const groupBooks = groups[groupName].sort((a, b) => (b.readDate || '').localeCompare(a.readDate || ''));
+    const rowsHtml = groupBooks.map(b => {
+      const starsHtml = b.rating > 0 ? `<div class="book-rating-grid">${renderStarsIconsHTML(b.rating)}</div>` : '';
+      const dateStr = b.readDate ? `<div style="font-size:11px;color:var(--text-tertiary);margin-top:3px">${formatYearMonth(b.readDate)}</div>` : '';
+      const subText = type === 'genre' ? b.author : unifyGenre(b.genre, b.title, b.author);
+
+      return `
+        <div class="book-row-list" onclick="openEditModal('${b.id}')">
+          ${b.cover ? `<img src="${b.cover}" referrerpolicy="no-referrer" class="list-thumb" />` : `<div class="list-thumb"></div>`}
+          <div class="list-info">
+            <div class="list-title">${b.title}</div>
+            <div class="list-sub">${subText}</div>
+          </div>
+          <div class="list-meta">${starsHtml}${dateStr}</div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="group-section-title">
+        <span>${groupName}</span>
+        <span>${groupBooks.length}</span>
+      </div>
+      <div class="books-list" style="margin-bottom:14px">${rowsHtml}</div>
+    `;
+  }).join('');
+
+  breakdownModal.classList.remove('hidden');
+};
 
 function updateGenreFilterOptions() {
   const select = document.getElementById('decide-genre');
